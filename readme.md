@@ -3,8 +3,8 @@ Little OTteR Assembly Pipeline (LOTRAP)
 A small pipeline created for the assembly of Otter genomes using reference guided assembly and longread sequences
 
 current functionality:
-    * A non-functioning snakemake file of the pipeline.
-    * various scripts to do FASTQ analysis, VCF analysis and split files based on lines.
+* A non-functioning snakemake file of the pipeline.
+* various scripts to do FASTQ analysis, VCF analysis and split files based on lines.
 
 Packages:
 * samtools
