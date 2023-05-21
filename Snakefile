@@ -1,46 +1,52 @@
-folder = "/media/ness/PortableSSD/pipelines/"
-specimen = "enhydra_lutris_kenyoni"
+configfile: "env.yml"
 
-reference_id = ""
-reads_id = ""
-max_corecount = 8
+folder = config["FOLDER"]
+specimen = config["SPECIMEN"]
+read_id = config["READS_ID"]
+reference_id = config["REFERENCE_ID"]
 
 
 rule all:
   input:
-    expand("output/lutra_lutra_1_{seq}.txt", seq=["nanopore", "pac_bio"])
+    f"{folder}{specimen}/",
+    expand(f"{folder}/{specimen}/" + "{output_folders}/", output_folders=["reads", "ref_genome", "mapping", "consensus", "variant_call"]),
+    f"{folder}{specimen}/analyses/{specimen}_fastq_analysis.txt",
+    f"{folder}{specimen}/reference/{specimen}.fasta"
 
-
-rule start:
-    output: "{folder}{specimen}/reads",
-            "{folder}{specimen}/ref_genome",
-            "{folder}{specimen}/variant_call",
-            "{folder}{specimen}/mapping",
-            "{folder}{specimen}/consensus"
+rule install_fastq:
+    output:
+        f"{folder}{specimen}/reads/{specimen}.fastq"
     shell:
         """
-        mkdir {folder}{specimen}/reads
-        mkdir {folder}{specimen}/ref_genome
-        mkdir {folder}{specimen}/variant_call
-        mkdir {folder}{specimen}/mapping
-        mkdir {folder}{specimen}/consensus
+        fastq-dump {read_id} -O {folder}{specimen}/reads/ &&
+        mv {folder}{specimen}/reads/{read_id}.fastq {folder}{specimen}/reads/{specimen}.fastq
         """
 
+rule install_reference:
+    output:
+        f"{folder}{specimen}/reference/{specimen}.fasta"
+    shell:
+        """
+        efetch -db nuccore -id {reference_id} -format fasta > {folder}{specimen}/reference/{specimen}.fasta
+        """
+
+
 rule analyse_reads:
-    input: "input/lutra_lutra_1_{seq}.fastq"
-    output: "output/lutra_lutra_1_{seq}.txt"
+    input: f"{folder}{specimen}/reads/{specimen}.fastq"
+    output: f"{folder}{specimen}/analyses/{specimen}_fastq_analysis.txt"
     conda:
         "env.yml"
     shell:
-        "julia ./scripts/analyser.jl {input} {output}"
+        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analyses/{specimen}_fastq_analysis.txt"
+
 
 rule map_reads:
-    input: "/media/ness/PortableSSD/pipelines/ref_genome/lutra_lutra_genome.fna",
-           "/media/ness/PortableSSD/pipelines/reads/lutra_lutra_nanopore.fastq" 
+    input: f"{folder}{specimen}/reference/{specimen}.fasta",
+           f"{folder}{specimen}/reads/{specimen}.fastq" 
     output:
-        "media/ness/PortableSSD/pipelines/genomes/lutra_lutra.sam"
+        f"{folder}/{specimen}/mapping/{specimen}.sam"
     shell:
-        "minimap2 -k 15 -w 30 -t 8 -a /media/ness/PortableSSD/pipelines/ref_genomes/lutra_lutra_genome.fna /media/ness/PortableSSD/pipelines/reads/lutra_lutra_nanopore.fastq > media/ness/PortableSSD/pipelines/genomes/lutra_lutra.sam"
+        "minimap2 -k 15 -w 30 -t 8 -a {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/reads/{specimen}.fastq > {folder}{specimen}/mapping/{specimen}.sam"
 
 rule sam_bami:
     input:  "media/ness/PortableSSD/pipelines/genomes/lutra_lutra.sam"
