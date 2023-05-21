@@ -1,9 +1,36 @@
+#=
+VCF_analysis
+----
+This script does a simple VCf-analyses to check the SNP-mutations
+and the INDEL mutations. To see the difference between the
+formed asssembly from the reference and the reference itself.
+
+Version: 1.0
+Date: 2023-05-21
+Author: Marc Wijnands
+
+PLANNED FUNCTIONALITY:
+A interactive heatmap and barplot showing the relationship
+of the SNP mutations and the INDELscores respectively.
+=#
+
 
 function writeFile(outname::String,
                    scores::String,
                    insertcount::Int64,
                    delcount::Int64,
                    indelscore::Float64)
+        #=
+        A function that writes the outputfile
+        in:
+                - the name of the output file
+                - the scores of the mutations
+                - the insert count
+                - the deletion count
+                - the indelscore comparing insertions and deletions
+        out:
+                a file with the name <OUTNAME> with all the analysed data
+        =# 
         outfile = open(outname, "w")
         write(outfile, "Insert count: $insertcount\n" *
                        "Deletion count: $delcount\n" *
@@ -12,7 +39,17 @@ function writeFile(outname::String,
         close(outfile)
 end
 
-function returnPrintableGraph(scores::Vector{Vector{Int64}}, titles::Vector{String})        
+function returnPrintableGraph(scores::Vector{Vector{Int64}}, titles::Vector{String})
+        #=
+        Returns a printable graph that is humanly readable
+        in:     
+                a 2D vector containing all the scores of the
+                        SNPs
+                The header titles of the 2D vector
+        out:
+                A string that can be printed to show 
+                        the score in a visually pleasing matter
+        =#
         printstr::String = ""
         printstr = printstr * "\t\t\t\t" * "FROM\n\t" * "-" ^ 50 * "\n"
         printstr = printstr * "\t\t|\t" * join(titles, "\t") * "\n" * "\t\t|\t" * "-" ^ 34 * "\n"
@@ -36,6 +73,13 @@ end
 
 
 function returnIndex(base::SubString{String})
+        #=
+        Returns the index of a base
+        A -> 1
+        C -> 2
+        G -> 3
+        T -> 4
+        =#
         if base == "A"
                 return 1
         elseif base == "C"
@@ -50,6 +94,15 @@ end
 
 
 function createGraph(titles::Vector{String})
+        #=
+        Creates a 2D vector to hold all the scores
+                of the mutations of the vcf
+        in:
+                a vector containing the titles of the headers of the
+                        2D vector
+        out:
+                a 2D vector filled with 0
+        =#
         default::Vector{Int64} = [0 for i in 1:length(titles)]
         scores::Vector{Vector{Int64}} = []
         for i in titles
@@ -60,6 +113,18 @@ function createGraph(titles::Vector{String})
 end
 
 function readFile(infile::IOStream, titles::Vector{String})
+        #=
+        Reads a VCf-file and adds the counts to a 2D vector.
+        Only counts the mutations with INDEL or a ACTG SNP.
+        So N and structural variants <*> are deleted.
+        in:
+                input IOStream
+                the titles of the headers of the 2D vector
+        out:
+                The 2D vector containing the counts
+                the insertcount
+                the deletion count
+        =#
         delcount::Int64 = 0
         insertcount::Int64 = 0
         scores::Vector{} = createGraph(titles)
@@ -71,7 +136,7 @@ function readFile(infile::IOStream, titles::Vector{String})
                         ref = items[4]
                         alt = split(items[5], ",")
                         for alteration in alt
-                                 if alteration == "<*>" # I believe this to be a deletion
+                                if alteration == "<*>" # I believe this to be a deletion
                                         alteration = ""
                                 end
                                 if ref != "N" # What could we possible do with aNy's
@@ -97,6 +162,13 @@ end
 
 
 function openFile(filename::String)
+        #=
+        Function that opens a file and returns the IOStream
+        in:
+                the name of the file
+        out:
+                the IOStream of the input file
+        =#
         infile = open("$filename", "r")
         return infile
 end
