@@ -9,9 +9,15 @@ reference_id = config["REFERENCE_ID"]
 rule all:
   input:
     f"{folder}{specimen}/",
-    expand(f"{folder}/{specimen}/" + "{output_folders}/", output_folders=["reads", "ref_genome", "mapping", "consensus", "variant_call"]),
     f"{folder}{specimen}/analyses/{specimen}_fastq_analysis.txt",
-    f"{folder}{specimen}/reference/{specimen}.fasta"
+    f"{folder}{specimen}/reference/{specimen}.fasta",
+    f"{folder}{specimen}/mapping/{specimen}.sam",
+    f"{folder}{specimen}/mapping/{specimen}.bam",
+    f"{folder}{specimen}/mapping/{specimen}.bai",
+    f"{folder}{specimen}/variant_call/{specimen}.vcf",
+    f"{folder}{specimen}/variant_call/{specimen}.vcf.gz",
+    f"{folder}{specimen}/consensus/{specimen}.fa",
+    f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt"
 
 rule install_fastq:
     output:
@@ -45,16 +51,74 @@ rule map_reads:
            f"{folder}{specimen}/reads/{specimen}.fastq" 
     output:
         f"{folder}/{specimen}/mapping/{specimen}.sam"
+    threads: workflow.cores
     shell:
-        "minimap2 -k 15 -w 30 -t 8 -a {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/reads/{specimen}.fastq > {folder}{specimen}/mapping/{specimen}.sam"
+        "minimap2 -k 15 -w 30 -t {threads} -a {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/reads/{specimen}.fastq > {folder}{specimen}/mapping/{specimen}.sam"
 
-rule sam_bami:
-    input:  "media/ness/PortableSSD/pipelines/genomes/lutra_lutra.sam"
+rule sam_bam:
+    input:  
+        f"{folder}{specimen}/mapping/{specimen}.sam"
     output:
-        "file.bam",
+        f"{folder}{specimen}/mapping/{specimen}.bam"
+    threads: workflow.cores * 0.25
     shell:
         """
-        samtools view -bS alignment.sam > alignment.bam
-        samtools sort -@ 8 file.bam > file_sorted_bam
-        mv file_sorted_bam file.bam
+        samtools view -bS {folder}{specimen}/mapping/{specimen}.sam > {folder}{specimen}/mapping/{specimen}.bam
+        samtools sort -@ {threads} {folder}{specimen}/mapping/{specimen}.bam > {folder}{specimen}/mapping/file_sorted_bam
+        mv {folder}{specimen}/mapping/file_sorted_bam {folder}{specimen}/mapping/{specimen}.bam
+        """
+
+rule create_bai:
+    input:
+        f"{folder}{specimen}/mapping/{specimen}.bam"
+    output:
+        f"{folder}{specimen}/mapping/{specimen}.bai"
+    threads: workflow.cores * 0.25
+    shell:
+        """
+        samtools index -@ {threads} {folder}{specimen}/mapping/{specimen}.bam > {folder}{specimen}/mapping/{specimen}.bai
+        """
+
+rule create_vcf:
+    input:
+        f"{folder}{specimen}/reference/{specimen}.fasta",
+        f"{folder}{specimen}/mapping/{specimen}.bam"
+    output:
+        f"{folder}{specimen}/variant_call/{specimen}.vcf"
+    shell:
+        """
+        bcftools mpileup -Ov -o {folder}{specimen}/variant_call/{specimen}.vcf -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam 
+        """
+
+rule create_vcf_zipped:
+    input:
+        f"{folder}{specimen}/variant_call/{specimen}.vcf"
+    output:
+        f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
+    shell:
+        """
+        bgzip {folder}{specimen}/variant_call/{specimen}.vcf
+        """
+
+rule create_consensus:
+    input:
+        f"{folder}{specimen}/reference/{specimen}.fasta",
+        f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
+    output:
+        f"{folder}{specimen}/consensus/{specimen}.fa"
+    shell:
+        """
+        cat {folder}{specimen}/reference/{specimen}.fasta | bcftools consensus {folder}{specimen}/variant_call/{specimen}.vcf.gz > {folder}{specimen}/consensus/{specimen}.fa
+        """
+
+rule analyse_vcf:
+    input:
+        f"{folder}{specimen}/variant_call/{specimen}.vcf"
+    output:
+        f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt"
+    conda:
+        "env.yml"
+    shell:
+        """
+        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt
         """
