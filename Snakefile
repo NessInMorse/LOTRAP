@@ -22,6 +22,8 @@ rule all:
 rule install_fastq:
     output:
         f"{folder}{specimen}/reads/{specimen}.fastq"
+    conda:
+        "env.yml"
     shell:
         """
         fastq-dump {read_id} -O {folder}{specimen}/reads/ &&
@@ -31,6 +33,8 @@ rule install_fastq:
 rule install_reference:
     output:
         f"{folder}{specimen}/reference/{specimen}.fasta"
+    conda:
+        "env.yml"
     shell:
         """
         efetch -db nuccore -id {reference_id} -format fasta > {folder}{specimen}/reference/{specimen}.fasta
@@ -51,6 +55,8 @@ rule map_reads:
            f"{folder}{specimen}/reads/{specimen}.fastq" 
     output:
         f"{folder}/{specimen}/mapping/{specimen}.sam"
+    conda:
+        "env.yml"
     threads: workflow.cores
     shell:
         "minimap2 -k 15 -w 30 -t {threads} -a {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/reads/{specimen}.fastq > {folder}{specimen}/mapping/{specimen}.sam"
@@ -60,6 +66,8 @@ rule sam_bam:
         f"{folder}{specimen}/mapping/{specimen}.sam"
     output:
         f"{folder}{specimen}/mapping/{specimen}.bam"
+    conda:
+        "env.yml"
     threads: workflow.cores * 0.25
     shell:
         """
@@ -73,6 +81,8 @@ rule create_bai:
         f"{folder}{specimen}/mapping/{specimen}.bam"
     output:
         f"{folder}{specimen}/mapping/{specimen}.bai"
+    conda:
+        "env.yml"
     threads: workflow.cores * 0.25
     shell:
         """
@@ -85,6 +95,8 @@ rule create_vcf:
         f"{folder}{specimen}/mapping/{specimen}.bam"
     output:
         f"{folder}{specimen}/variant_call/{specimen}.vcf"
+    conda:
+        "env.yml"
     shell:
         """
         bcftools mpileup -Ov -o {folder}{specimen}/variant_call/{specimen}.vcf -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam 
@@ -95,6 +107,8 @@ rule create_vcf_zipped:
         f"{folder}{specimen}/variant_call/{specimen}.vcf"
     output:
         f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
+    conda:
+        "env.yml"
     shell:
         """
         bgzip {folder}{specimen}/variant_call/{specimen}.vcf
@@ -107,6 +121,8 @@ rule create_consensus:
         f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
     output:
         f"{folder}{specimen}/consensus/{specimen}.fa"
+    conda:
+        "env.yml"
     shell:
         """
         cat {folder}{specimen}/reference/{specimen}.fasta | bcftools consensus {folder}{specimen}/variant_call/{specimen}.vcf.gz > {folder}{specimen}/consensus/{specimen}.fa
