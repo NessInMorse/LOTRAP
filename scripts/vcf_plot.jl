@@ -4,15 +4,14 @@ VCF PLOT
 A script that creates an interactive plot of the data in the vcf-file
     containing all the SNP-mutation types per contig in a heatmap
 
-VERSION: 0.2 - Added DataFrames package
+VERSION: 0.2 - Removed DataFrames package
 Date: 2023-05-24
 Author: Marc Wijnands
 
-Added basic functionality to the script.
-Is not yet able to produce plots
-Was also not able to test functionality yet.
+Currently is only able to create a singular plot
 
-Planned to let it create plots using Plotly(JS)
+Planned to make it able to create all the different heatmap
+plots and make them 'stack' them per 9 heatmap plots
 =#
 try
         using PlotlyJS
@@ -24,7 +23,14 @@ finally
 end
 
 function create_heatmaps(all_contigs::Dict{String, Matrix{Int}})
-
+        #=
+        Function that creates heatmaps of all the vcf-data per contig
+        in:
+                all SNP counts per contig
+        out:
+                several heatmap plots containing the SNP counts per contig
+                        and the severity of the counts
+        =#
         for i in keys(all_contigs)
                 layout = Layout(title="Directed SNP mutations in contig $(i)", 
                                 xaxis_title = "Wild type",
@@ -41,7 +47,6 @@ function create_heatmaps(all_contigs::Dict{String, Matrix{Int}})
                 # push!(heatmaps, heatmap_plot)
                 # savefig(plottie, "heatmap_plot.png")
         end
-        
 end
 
 
