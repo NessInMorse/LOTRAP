@@ -15,15 +15,33 @@ Was also not able to test functionality yet.
 Planned to let it create plots using Plotly(JS)
 =#
 try
-        using DataFrames
         using PlotlyJS
 catch
         using Pkg
-        Pkg.add("DataFrames")
         Pkg.add("PlotlyJS")
 finally
-        using DataFrames
         using PlotlyJS
+end
+
+function create_heatmaps(all_contigs::Dict{String, Matrix{Int}})
+
+        for i in keys(all_contigs)
+                layout = Layout(title="Directed SNP mutations in contig $(i)", 
+                                xaxis_title = "Wild type",
+                                yaxis_title = "Mutant type")
+                data = all_contigs[i]
+                savefig(plot(heatmap(
+                        x = ["A", "C", "G", "T"],
+                        y = ["A", "C", "G", "T"],
+                        z = data,
+                        colorbar_title = "Heatmap",
+                        colorscale = "Viridis"
+                ), layout), "heatmap_plot.png")
+                # plottie = plot(heatmap_plot, layout = xaxis_side="top")
+                # push!(heatmaps, heatmap_plot)
+                # savefig(plottie, "heatmap_plot.png")
+        end
+        
 end
 
 
@@ -94,14 +112,7 @@ function main()
         # outfile = open(ARGS[2], "w")
         titles::Vector{String} = ["A", "C", "G", "T"] # We remember this sequence
         all_contigs = readFile(infile, titles)
-        all_dfs::Dict{String, DataFrame} = Dict()
-        for key in keys(all_contigs)
-                df = DataFrame(all_contigs[key], :auto)
-                rename!(df, combo)
-                df[!, "combination"] = combo
-                
-                all_dfs[key] = df
-        end
+        create_heatmaps(all_contigs)
         
         # println(all_dfs)
         # println(length(all_dfs))
