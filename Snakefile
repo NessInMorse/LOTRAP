@@ -9,7 +9,7 @@ reference_id = config["REFERENCE_ID"]
 rule all:
   input:
     f"{folder}{specimen}/",
-    f"{folder}{specimen}/analyses/{specimen}_fastq_analysis.txt",
+    f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
     f"{folder}{specimen}/reference/{specimen}.fasta",
     f"{folder}{specimen}/mapping/{specimen}.sam",
     f"{folder}{specimen}/mapping/{specimen}.bam",
@@ -43,11 +43,11 @@ rule install_reference:
 
 rule analyse_reads:
     input: f"{folder}{specimen}/reads/{specimen}.fastq"
-    output: f"{folder}{specimen}/analyses/{specimen}_fastq_analysis.txt"
+    output: f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
     conda:
         "env.yml"
     shell:
-        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analyses/{specimen}_fastq_analysis.txt"
+        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
 
 
 rule map_reads:
