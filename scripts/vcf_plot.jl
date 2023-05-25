@@ -4,14 +4,15 @@ VCF PLOT
 A script that creates an interactive plot of the data in the vcf-file
     containing all the SNP-mutation types per contig in a heatmap
 
-VERSION: 0.2 - Removed DataFrames package
+VERSION: 1.0 - Added 16 heatmaps per batch
 Date: 2023-05-24
 Author: Marc Wijnands
 
-Currently is only able to create a singular plot
+Currently is able to create 16 heatmaps per file
+and has the remainder in an extra file
+Also removed the ticklabels since they do not add useful information.
 
-Planned to make it able to create all the different heatmap
-plots and make them 'stack' them per 9 heatmap plots
+currently unable to see the x-/y-axis titles
 =#
 try
         using PlotlyJS
@@ -26,7 +27,8 @@ function create_heatmaps(all_contigs::Dict{String, Matrix{Int}}, outfolder)
         #=
         Function that creates heatmaps of all the vcf-data per contig
         in:
-                all SNP counts per contig
+                all_contigs: all SNP counts per contig
+                outfolder: the output folder
         out:
                 several heatmap plots containing the SNP counts per contig
                         and the severity of the counts
@@ -44,20 +46,25 @@ function create_heatmaps(all_contigs::Dict{String, Matrix{Int}}, outfolder)
                         x = ["A", "C", "G", "T"],
                         y = ["A", "C", "G", "T"],
                         z = data,
-                        colorbar_title = "Heatmap",
-                        colorscale = "Viridis"
+                        colorbar_title = "Relative intensity",
+                        colorscale = "Viridis",
+                        colorbar_showticklabels = false,
+                        xaxis_title = "FROM",
+                        yaxis_title = "TO"
                 )
-                heatmaps[contig_count] = hm
-                contig_names[contig_count] = i
+                heatmaps[(contig_count-1) % 16 + 1] = hm
+                contig_names[(contig_count-1) % 16 + 1] = i
                 
-                if contig_count == 1
+                if iszero(contig_count % 16)
                         sub_plotties = make_subplots(rows=4, cols=4,
                                     specs=reshape([Spec() for i in 1:16], (4, 4)),
-                                    subplot_titles=reshape(contig_names, (4, 4)))
+                                    subplot_titles=reshape(contig_names, (4, 4)),
+                                    x_title = "FROM",
+                                    y_title = "TO")
 
                         for (i, h) in enumerate(heatmaps)
-                                r = ((i-1) % 4) + 1
-                                c = ((i-1) ÷ 4) + 1
+                                c = ((i-1) % 4) + 1
+                                r = ((i-1) ÷ 4) + 1
                                 add_trace!(sub_plotties, h, row=r, col=c)
                         end
                         
@@ -69,6 +76,21 @@ function create_heatmaps(all_contigs::Dict{String, Matrix{Int}}, outfolder)
                 end
                 contig_count += 1
         end
+        if !iszero(contig_count % 16)
+                sub_plotties = make_subplots(rows=4, cols=4,
+                specs=reshape([Spec() for i in 1:16], (4, 4)),
+                subplot_titles=reshape(contig_names, (4, 4)))
+
+                for (i, h) in enumerate(heatmaps)
+                        c = ((i-1) % 4) + 1
+                        r = ((i-1) ÷ 4) + 1
+                        add_trace!(sub_plotties, h, row=r, col=c)
+                end
+                
+                relayout!(sub_plotties, title_text="VCF's of 16 contigs")
+                savefig(sub_plotties, outfolder * "heatmap_$(plot_count).png")
+        end
+
 end
 
 
