@@ -17,7 +17,8 @@ rule all:
     f"{folder}{specimen}/variant_call/{specimen}.vcf",
     f"{folder}{specimen}/variant_call/{specimen}.vcf.gz",
     f"{folder}{specimen}/consensus/{specimen}.fa",
-    f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt"
+    f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
+    directory(f"{folder}{specimen}/variant_plots/")
 
 rule install_fastq:
     output:
@@ -138,4 +139,15 @@ rule analyse_vcf:
     shell:
         """
         julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt
+        """
+
+rule plot_vcf:
+    input:
+        f"{folder}{specimen}/variant_call/{specimen}.vcf",
+    output:
+        directory(f"{folder}{specimen}/variant_plots/")
+    shell:
+        """
+        mkdir {folder}{specimen}/variant_plots/
+        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}.vcf {folder}{specimen}/variant_plots/
         """
