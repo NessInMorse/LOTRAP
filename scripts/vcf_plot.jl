@@ -22,7 +22,7 @@ finally
         using PlotlyJS
 end
 
-function create_heatmaps(all_contigs::Dict{String, Matrix{Int}})
+function create_heatmaps(all_contigs::Dict{String, Matrix{Int}}, outfolder)
         #=
         Function that creates heatmaps of all the vcf-data per contig
         in:
@@ -31,32 +31,43 @@ function create_heatmaps(all_contigs::Dict{String, Matrix{Int}})
                 several heatmap plots containing the SNP counts per contig
                         and the severity of the counts
         =#
+        heatmaps = [heatmap() for i in 1:16]
+        contig_names = ["" for i in 1:16]
+        plot_count::Int = 1
+        contig_count::Int = 1
         for i in keys(all_contigs)
                 layout = Layout(title="Directed SNP mutations in contig $(i)", 
                                 xaxis_title = "Wild type",
                                 yaxis_title = "Mutant type")
                 data = all_contigs[i]
-                hm = plot(heatmap(
+                hm = heatmap(
                         x = ["A", "C", "G", "T"],
                         y = ["A", "C", "G", "T"],
                         z = data,
                         colorbar_title = "Heatmap",
                         colorscale = "Viridis"
-                ))
-                h2 = plot(heatmap(
-                        x = ["A", "C", "G", "T"],
-                        y = ["Y", "X", "Z", "P"],
-                        z = data,
-                        colorbar_title = "Heatmap",
-                        colorscale = "Viridis"
-                ))
-                # savefig(plot([hm, hm], layout), "heatmap_plot.png")
-                s = [hm h2]
-                relayout!(s, title_text="I wonder what this does")
-                savefig(s, "heatmappie.png")
-                # plottie = plot(heatmap_plot, layout = xaxis_side="top")
-                # push!(heatmaps, heatmap_plot)
-                # savefig(plottie, "heatmap_plot.png")
+                )
+                heatmaps[contig_count] = hm
+                contig_names[contig_count] = i
+                
+                if contig_count == 1
+                        sub_plotties = make_subplots(rows=4, cols=4,
+                                    specs=reshape([Spec() for i in 1:16], (4, 4)),
+                                    subplot_titles=reshape(contig_names, (4, 4)))
+
+                        for (i, h) in enumerate(heatmaps)
+                                r = ((i-1) % 4) + 1
+                                c = ((i-1) ÷ 4) + 1
+                                add_trace!(sub_plotties, h, row=r, col=c)
+                        end
+                        
+                        relayout!(sub_plotties, title_text="VCF's of 16 contigs")
+                        savefig(sub_plotties, outfolder * "heatmap_$(plot_count).png")
+                        plot_count += 1
+                        heatmaps = [heatmap() for i in 1:16]
+                        contig_names = ["" for i in 1:16]
+                end
+                contig_count += 1
         end
 end
 
@@ -125,10 +136,10 @@ end
 function main()
     if length(ARGS) == 2
         infile = open(ARGS[1], "r")
-        # outfile = open(ARGS[2], "w")
+        outfolder = ARGS[2]
         titles::Vector{String} = ["A", "C", "G", "T"] # We remember this sequence
         all_contigs = readFile(infile, titles)
-        create_heatmaps(all_contigs)
+        create_heatmaps(all_contigs, outfolder)
         
         # println(all_dfs)
         # println(length(all_dfs))
