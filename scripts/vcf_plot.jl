@@ -36,13 +36,24 @@ function create_heatmaps(all_contigs::Dict{String, Matrix{Int}})
                                 xaxis_title = "Wild type",
                                 yaxis_title = "Mutant type")
                 data = all_contigs[i]
-                savefig(plot(heatmap(
+                hm = plot(heatmap(
                         x = ["A", "C", "G", "T"],
                         y = ["A", "C", "G", "T"],
                         z = data,
                         colorbar_title = "Heatmap",
                         colorscale = "Viridis"
-                ), layout), "heatmap_plot.png")
+                ))
+                h2 = plot(heatmap(
+                        x = ["A", "C", "G", "T"],
+                        y = ["Y", "X", "Z", "P"],
+                        z = data,
+                        colorbar_title = "Heatmap",
+                        colorscale = "Viridis"
+                ))
+                # savefig(plot([hm, hm], layout), "heatmap_plot.png")
+                s = [hm h2]
+                relayout!(s, title_text="I wonder what this does")
+                savefig(s, "heatmappie.png")
                 # plottie = plot(heatmap_plot, layout = xaxis_side="top")
                 # push!(heatmaps, heatmap_plot)
                 # savefig(plottie, "heatmap_plot.png")
