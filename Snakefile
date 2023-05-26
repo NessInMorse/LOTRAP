@@ -23,7 +23,7 @@ rule all:
 
 rule create_notes:
     output:
-        f"{folder}{specimen}/notes/"
+        directory(f"{folder}{specimen}/notes/")
     shell:
         """
         echo "species: {specimen}" > {folder}{specimen}/notes/notes.txt
