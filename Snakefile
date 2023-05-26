@@ -9,6 +9,7 @@ reference_id = config["REFERENCE_ID"]
 rule all:
   input:
     f"{folder}{specimen}/",
+    f"{folder}{specimen}/notes/",
     f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
     f"{folder}{specimen}/reference/{specimen}.fasta",
     f"{folder}{specimen}/mapping/{specimen}.sam",
@@ -19,6 +20,16 @@ rule all:
     f"{folder}{specimen}/consensus/{specimen}.fa",
     f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
     directory(f"{folder}{specimen}/variant_plots/")
+
+rule create_notes:
+    output:
+        f"{folder}{specimen}/notes/"
+    shell:
+        """
+        echo "species: {specimen}" > {folder}{specimen}/notes/notes.txt
+        echo "read id: {read_id}" >> {folder}{specimen}/notes/notes.txt
+        echo "reference id: {reference_id}" >> {folder}{specimen}/notes/notes.txt
+        """
 
 rule install_fastq:
     output:
