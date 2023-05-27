@@ -5,10 +5,70 @@ An interactive plot analysis for the fastq-file:
     creating a boxplot for each of the positions 
     of the read where the count of qualities > 1000.
 
-Version 0.1
+Version 0.2 - added possibility to create plots
+
 Date: 2023-05-26
 Author: Marc Wijnands
+
+Currently outputs to an example file.
+
+NOTE:
+Currently the program is running very slowly, since the plot is
+creating A ton of lines in the process of making the plot.
 =#
+using PlotlyJS
+# plot(a, x=:total_bill, kind="box")
+
+
+function calculate_Qs(quality_per_position, count_per_position)
+    #=
+    Function that calculates the median, Q₀, Q₁, Q₃ & Q₄.
+    And then creates the fastq plot showing the qualities
+    in:
+        quality_per_position: a dictionary containing the quality per position in
+                a vector
+        count_per_position: the counts per base in a vector
+    out:
+        A boxplot showing the spread of the quality per base.
+    =#
+    # count_per_position = count_per_position[1:50]
+    box_per_position::Matrix = reshape([], (0, 0))
+    
+    for (i, count) in enumerate(count_per_position)
+        if count > 1000
+            running_sum = [0 for _ in quality_per_position[i]]
+            for (j, sub_count) in enumerate(quality_per_position[i])
+                if j > 1
+                    running_sum[j] = running_sum[j-1] + sub_count
+                else
+                    running_sum[j] = sub_count
+                end
+            end
+            println(running_sum)
+            Q₀ = findfirst(x -> x > 0, running_sum)
+            Q₄ = findfirst(x -> x == running_sum[end], running_sum)
+            Q₂ = findfirst(x -> x >= (running_sum[end] ÷ 2), running_sum)
+            Q₁ = findfirst(x -> x >= Q₂ ÷ 2, running_sum)
+            Q₃ = findfirst(x -> x >= Q₂ + (Q₂ ÷ 2), running_sum)
+            if Q₁ === nothing
+                Q₁ = Q₂
+            end
+            if Q₃ === nothing
+                Q₃ = Q₂
+            end
+            if isempty(box_per_position)
+                box_per_position = reshape([Q₀, Q₁, Q₂, Q₃, Q₄], (5, 1))
+            else
+                box_per_position = hcat(box_per_position, reshape([Q₀, Q₁, Q₂, Q₃, Q₄], (5, 1)))
+            end
+        else
+            break
+        end
+    end
+    savefig(plot(box_per_position, x=:total_bill, kind="box"), "qualities.png")
+    # println(box_per_position)
+end
+
 
 function analyse_quality(quality_string::String, 
                          quality_per_position::Dict{Int, Vector{Int}},
@@ -62,7 +122,8 @@ function main()
     if length(ARGS) == 2
         infile::IOStream = open(ARGS[1], "r")
         out_folder::String = ARGS[2]
-        readfastq(infile)
+        quality_per_position, count_per_position = readfastq(infile)
+        calculate_Qs(quality_per_position, count_per_position)
     end
 end
 main()
