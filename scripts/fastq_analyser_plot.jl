@@ -5,22 +5,23 @@ An interactive plot analysis for the fastq-file:
     creating a boxplot for each of the positions 
     of the read where the count of qualities > 1000.
 
-Version 0.2 - added possibility to create plots
+Version 1.0 - Now creates a scatter plot in stead
 
-Date: 2023-05-26
+Date: 2023-05-28
 Author: Marc Wijnands
 
-Currently outputs to an example file.
-
 NOTE:
-Currently the program is running very slowly, since the plot is
-creating A ton of lines in the process of making the plot.
+It takes around 5 minutes to plot a file of about 9Gb of data.
 =#
-using PlotlyJS
-# plot(a, x=:total_bill, kind="box")
+try
+    using PlotlyJS
+catch
+    using Pkg
+    Pkg.add("PlotlyJS")
+    using PlotlyJS
+end
 
-
-function calculate_Qs(quality_per_position, count_per_position)
+function calculate_Qs(quality_per_position, count_per_position, out_folder)
     #=
     Function that calculates the median, Q₀, Q₁, Q₃ & Q₄.
     And then creates the fastq plot showing the qualities
@@ -31,7 +32,6 @@ function calculate_Qs(quality_per_position, count_per_position)
     out:
         A boxplot showing the spread of the quality per base.
     =#
-    # count_per_position = count_per_position[1:50]
     box_per_position::Matrix = reshape([], (0, 0))
     
     for (i, count) in enumerate(count_per_position)
@@ -44,12 +44,11 @@ function calculate_Qs(quality_per_position, count_per_position)
                     running_sum[j] = sub_count
                 end
             end
-            println(running_sum)
             Q₀ = findfirst(x -> x > 0, running_sum)
             Q₄ = findfirst(x -> x == running_sum[end], running_sum)
             Q₂ = findfirst(x -> x >= (running_sum[end] ÷ 2), running_sum)
-            Q₁ = findfirst(x -> x >= Q₂ ÷ 2, running_sum)
-            Q₃ = findfirst(x -> x >= Q₂ + (Q₂ ÷ 2), running_sum)
+            Q₁ = findfirst(x -> x >= running_sum[Q₂] ÷ 2, running_sum)
+            Q₃ = findfirst(x -> x >= ((running_sum[Q₂] + running_sum[Q₄]) ÷ 2), running_sum)
             if Q₁ === nothing
                 Q₁ = Q₂
             end
@@ -57,15 +56,25 @@ function calculate_Qs(quality_per_position, count_per_position)
                 Q₃ = Q₂
             end
             if isempty(box_per_position)
-                box_per_position = reshape([Q₀, Q₁, Q₂, Q₃, Q₄], (5, 1))
+                box_per_position = [Q₀ Q₁ Q₂ Q₃ Q₄]
             else
-                box_per_position = hcat(box_per_position, reshape([Q₀, Q₁, Q₂, Q₃, Q₄], (5, 1)))
+                box_per_position = vcat(box_per_position, [Q₀ Q₁ Q₂ Q₃ Q₄])
             end
         else
             break
         end
     end
-    savefig(plot(box_per_position, x=:total_bill, kind="box"), "qualities.png")
+    p = plot(box_per_position, 
+                    Layout(title="Read quality of FASTQ-file",
+                           yaxis_title="Phred Score",
+                           xaxis_title="Position"))
+    restyle!(p, 1, marker_color="rgba(255, 108, 108, 0.8)", name=:Q₀)
+    restyle!(p, 2, marker_color="rgba(255, 243, 107, 0.8)", name=:Q₁)
+    restyle!(p, 3, marker_color="rgba(119, 255, 107, 0.8)", name=:Q₂)
+    restyle!(p, 4, marker_color="rgba(105, 255, 232, 0.8)", name=:Q₃)
+    restyle!(p, 5, marker_color="rgba(151, 105, 255, 0.8)", name=:Q₄)
+    savefig(p, "$(out_folder)/qualities.png")
+
     # println(box_per_position)
 end
 
@@ -123,7 +132,7 @@ function main()
         infile::IOStream = open(ARGS[1], "r")
         out_folder::String = ARGS[2]
         quality_per_position, count_per_position = readfastq(infile)
-        calculate_Qs(quality_per_position, count_per_position)
+        calculate_Qs(quality_per_position, count_per_position, out_folder)
     end
 end
 main()
