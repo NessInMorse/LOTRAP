@@ -11,6 +11,8 @@ rule all:
     f"{folder}{specimen}/",
     f"{folder}{specimen}/notes/",
     f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
+    f"{folder}{specimen}/analysis/{specimen}_readqc.png",
+    f"{folder}{specimen}/analysis/{specimen}_readqc.html"
     f"{folder}{specimen}/reference/{specimen}.fasta",
     f"{folder}{specimen}/mapping/{specimen}.sam",
     f"{folder}{specimen}/mapping/{specimen}.bam",
@@ -19,7 +21,8 @@ rule all:
     f"{folder}{specimen}/variant_call/{specimen}.vcf.gz",
     f"{folder}{specimen}/consensus/{specimen}.fa",
     f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
-    directory(f"{folder}{specimen}/variant_plots/")
+    directory(f"{folder}{specimen}/variant_plots/"),
+    
 
 rule create_notes:
     output:
@@ -60,6 +63,18 @@ rule analyse_reads:
         "env.yml"
     shell:
         "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
+
+rule plot_quality_reads:
+    input: 
+        f"{folder}{specimen}/reads/{specimen}.fastq"
+    output:
+        f"{folder}{specimen}/analysis/{specimen}_readqc.png",
+        f"{folder}{specimen}/analysis/{specimen}_readqc.html"
+    shell:
+        """
+        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/analysis/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc
+        """
+    
 
 
 rule map_reads:
