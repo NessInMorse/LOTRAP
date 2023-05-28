@@ -21,7 +21,7 @@ catch
     using PlotlyJS
 end
 
-function calculate_Qs(quality_per_position, count_per_position, out_folder)
+function calculate_Qs(quality_per_position, count_per_position, out_file)
     #=
     Function that calculates the median, Q₀, Q₁, Q₃ & Q₄.
     And then creates the fastq plot showing the qualities
@@ -73,8 +73,8 @@ function calculate_Qs(quality_per_position, count_per_position, out_folder)
     restyle!(p, 3, marker_color="rgba(119, 255, 107, 0.8)", name=:Q₂)
     restyle!(p, 4, marker_color="rgba(105, 255, 232, 0.8)", name=:Q₃)
     restyle!(p, 5, marker_color="rgba(151, 105, 255, 0.8)", name=:Q₄)
-    savefig(p, "$(out_folder)/qualities.png")
-
+    savefig(p, "$(out_file).html")
+    savefig(p, "$(out_file).png")
     # println(box_per_position)
 end
 
@@ -130,7 +130,7 @@ end
 function main()
     if length(ARGS) == 2
         infile::IOStream = open(ARGS[1], "r")
-        out_folder::String = ARGS[2]
+        out_file::String = ARGS[2]
         quality_per_position, count_per_position = readfastq(infile)
         calculate_Qs(quality_per_position, count_per_position, out_folder)
     end
