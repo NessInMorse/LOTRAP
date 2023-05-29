@@ -132,7 +132,7 @@ function main()
         infile::IOStream = open(ARGS[1], "r")
         out_file::String = ARGS[2]
         quality_per_position, count_per_position = readfastq(infile)
-        calculate_Qs(quality_per_position, count_per_position, out_folder)
+        calculate_Qs(quality_per_position, count_per_position, out_file)
     end
 end
 main()
