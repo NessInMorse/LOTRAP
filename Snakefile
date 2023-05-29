@@ -139,7 +139,7 @@ rule create_vcf_zipped:
     shell:
         """
         bgzip {folder}{specimen}/variant_call/{specimen}.vcf
-        tabix -p vcf {folder}{specimen/variant_call}/{specimen}.vcf.gz
+        tabix -p vcf {folder}{specimen}/variant_call/{specimen}.vcf.gz
         """
 
 rule create_consensus:
