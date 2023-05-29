@@ -29,6 +29,7 @@ rule create_notes:
         directory(f"{folder}{specimen}/notes/")
     shell:
         """
+        mkdir {folder}{specimen}/notes/
         echo "species: {specimen}" > {folder}{specimen}/notes/notes.txt
         echo "read id: {read_id}" >> {folder}{specimen}/notes/notes.txt
         echo "reference id: {reference_id}" >> {folder}{specimen}/notes/notes.txt
