@@ -12,7 +12,7 @@ rule all:
     f"{folder}{specimen}/notes/",
     f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
     f"{folder}{specimen}/analysis/{specimen}_readqc.png",
-    f"{folder}{specimen}/analysis/{specimen}_readqc.html"
+    f"{folder}{specimen}/analysis/{specimen}_readqc.html",
     f"{folder}{specimen}/reference/{specimen}.fasta",
     f"{folder}{specimen}/mapping/{specimen}.sam",
     f"{folder}{specimen}/mapping/{specimen}.bam",
@@ -72,7 +72,7 @@ rule plot_quality_reads:
         f"{folder}{specimen}/analysis/{specimen}_readqc.html"
     shell:
         """
-        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/analysis/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc
+        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc
         """
     
 
@@ -81,7 +81,7 @@ rule map_reads:
     input: f"{folder}{specimen}/reference/{specimen}.fasta",
            f"{folder}{specimen}/reads/{specimen}.fastq" 
     output:
-        f"{folder}/{specimen}/mapping/{specimen}.sam"
+        f"{folder}{specimen}/mapping/{specimen}.sam"
     conda:
         "env.yml"
     threads: workflow.cores
