@@ -4,7 +4,7 @@ VCF PLOT
 A script that creates an interactive plot of the data in the vcf-file
     containing all the SNP-mutation types per contig in a heatmap
 
-VERSION: 1.0 - Added 16 heatmaps per batch
+VERSION: 1.0 - Removed unneccessary comments
 Date: 2023-05-24
 Author: Marc Wijnands
 
@@ -38,9 +38,6 @@ function create_heatmaps(all_contigs::Dict{String, Matrix{Int}}, outfolder)
         plot_count::Int = 1
         contig_count::Int = 1
         for i in keys(all_contigs)
-                layout = Layout(title="Directed SNP mutations in contig $(i)", 
-                                xaxis_title = "Wild type",
-                                yaxis_title = "Mutant type")
                 data = all_contigs[i]
                 hm = heatmap(
                         x = ["A", "C", "G", "T"],
@@ -137,10 +134,10 @@ function readFile(infile::IOStream, titles::Vector{String})::Dict{String, Matrix
                     ref = items[4]
                     alt = split(items[5], ",")
                     for alteration in alt
-                            if alteration == "<*>" # I believe this to be a deletion
+                            if alteration == "<*>"
                                     alteration = ""
                             end
-                            if ref != "N" # What could we possible do with aNy's
+                            if ref != "N" # 'N'ucleotides are useless
                                     if length(ref) == 1 && length(alteration) == 1
                                             WT = returnIndex(ref)
                                             MT = returnIndex(alteration)
@@ -159,13 +156,9 @@ function main()
     if length(ARGS) == 2
         infile = open(ARGS[1], "r")
         outfolder = ARGS[2]
-        titles::Vector{String} = ["A", "C", "G", "T"] # We remember this sequence
+        titles::Vector{String} = ["A", "C", "G", "T"]
         all_contigs = readFile(infile, titles)
         create_heatmaps(all_contigs, outfolder)
-        
-        # println(all_dfs)
-        # println(length(all_dfs))
-        # close(outfile)
     end
 end
 
