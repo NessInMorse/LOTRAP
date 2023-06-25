@@ -17,11 +17,11 @@ rule all:
     f"{folder}{specimen}/mapping/{specimen}.sam",
     f"{folder}{specimen}/mapping/{specimen}.bam",
     f"{folder}{specimen}/mapping/{specimen}.bai",
-    f"{folder}{specimen}/variant_call/{specimen}.vcf",
+    f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
     f"{folder}{specimen}/variant_call/{specimen}.vcf.gz",
     f"{folder}{specimen}/consensus/{specimen}.fa",
     f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
-    directory(f"{folder}{specimen}/variant_plots/"),
+    f"{folder}{specimen}/variant_plots/",
     
 
 rule create_notes:
@@ -125,20 +125,24 @@ rule create_vcf:
         f"{folder}{specimen}/variant_call/{specimen}.vcf"
     conda:
         "env.yml"
+    threads:
+        workflow.cores * 0.25
     shell:
         """
-        bcftools mpileup -Ov -o {folder}{specimen}/variant_call/{specimen}.vcf -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam 
+        bcftools mpileup -Ov --threads {threads} -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam | bcftools call -mv -Ov --threads {threads} > {folder}{specimen}/variant_call/{specimen}.vcf
         """
 
 rule create_vcf_zipped:
     input:
         f"{folder}{specimen}/variant_call/{specimen}.vcf"
     output:
+        f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
         f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
     conda:
         "env.yml"
     shell:
         """
+        cp {folder}{specimen}/variant_call/{specimen}.vcf {folder}{specimen}/variant_call/{specimen}_cp.vcf
         bgzip {folder}{specimen}/variant_call/{specimen}.vcf
         tabix -p vcf {folder}{specimen}/variant_call/{specimen}.vcf.gz
         """
@@ -158,23 +162,23 @@ rule create_consensus:
 
 rule analyse_vcf:
     input:
-        f"{folder}{specimen}/variant_call/{specimen}.vcf"
+        f"{folder}{specimen}/variant_call/{specimen}_cp.vcf"
     output:
         f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt"
     conda:
         "env.yml"
     shell:
         """
-        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt
+        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt
         """
 
 rule plot_vcf:
     input:
-        f"{folder}{specimen}/variant_call/{specimen}.vcf",
+        f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
     output:
         directory(f"{folder}{specimen}/variant_plots/")
     shell:
         """
         mkdir {folder}{specimen}/variant_plots/
-        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}.vcf {folder}{specimen}/variant_plots/
+        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/variant_plots/
         """
