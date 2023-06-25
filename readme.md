@@ -29,9 +29,12 @@ On the following data of the Streptococcus ruminantium
 * reads:      1.5Gb (DRR481114)
 * reference:  2.1Mb (NZ_AP018400.1)
 
+
+With the following runtimes:
 * real    71m54.665s
 * user    51m29.261s
 * sys     23m7.101s
+
 
 This was done using the time commando before the snakemake commando call on a Swift 3 Acer laptop.
 Most of the runtime is from:
