@@ -65,6 +65,7 @@ rule analyse_reads:
     shell:
         "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
 
+
 rule plot_quality_reads:
     input: 
         f"{folder}{specimen}/reads/{specimen}.fastq"
@@ -75,7 +76,6 @@ rule plot_quality_reads:
         """
         julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc
         """
-    
 
 
 rule map_reads:
