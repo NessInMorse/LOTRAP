@@ -36,7 +36,7 @@ With the following runtimes:
 * sys     23m7.101s
 
 
-This was done using the time commando before the snakemake commando call on a Swift 3 Acer laptop.
+This was done using the time commando before the snakemake commando call on a Swift 3 SF314-58G-57DG Acer laptop with 32Gb of added DDR4 RAM.
 Most of the runtime is from:
 * Installing the sequences
 * Mapping the reads onto the reference
