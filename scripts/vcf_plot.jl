@@ -4,7 +4,7 @@ VCF PLOT
 A script that creates an interactive plot of the data in the vcf-file
     containing all the SNP-mutation types per contig in a heatmap
 
-VERSION: 1.0 - Removed unneccessary comments
+VERSION: 1.1 - Added timing of the script
 Date: 2023-05-24
 Author: Marc Wijnands
 
@@ -153,14 +153,20 @@ end
 
 
 function main()
-    if length(ARGS) == 2
         infile = open(ARGS[1], "r")
         outfolder = ARGS[2]
         titles::Vector{String} = ["A", "C", "G", "T"]
         all_contigs = readFile(infile, titles)
         create_heatmaps(all_contigs, outfolder)
-    end
 end
 
 
-main()
+function time_main()
+        time = @elapsed main()
+        time_name = split(ARGS[3], '/')[end]
+        outfile = open(ARGS[3], "w")
+        write(outfile, "$(time_name)\t$(time)")
+        close(outfile)
+end
+
+time_main()

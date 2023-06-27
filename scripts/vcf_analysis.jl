@@ -5,8 +5,8 @@ This script does a simple VCf-analyses to check the SNP-mutations
 and the INDEL mutations. To see the difference between the
 formed asssembly from the reference and the reference itself.
 
-Version: 1.0
-Date: 2023-05-21
+Version: 1.1 - Added timing of the script
+Date: 2023-06-27
 Author: Marc Wijnands
 
 PLANNED FUNCTIONALITY:
@@ -186,6 +186,14 @@ function main()
         
         writeFile(outname, print_scores, insertcount, delcount, indelscore)
 end
-if length(ARGS) == 2 && ARGS[1] != ARGS[2]
-        main()
+
+
+function time_main()
+        time = @elapsed main()
+        time_name = split(ARGS[3], '/')[end]
+        outfile = open(ARGS[3], "w")
+        write(outfile, "$(time_name)\t$(time)")
+        close(outfile)
 end
+
+time_main()

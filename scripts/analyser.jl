@@ -3,8 +3,8 @@ FASTQ analyser
 ------
 A simple FASTQ-analyser which will show insight into general facts of the data.
 
-Version 1.1 - Added the average quality of the reads
-Date 2023-05-23
+Version 1.2 - Added timing of the script
+Date 2023-06-27
 Author: Marc Wijnands
 
 PLANNED FUNCTIONALITY:
@@ -198,4 +198,13 @@ function main()
                   avgQuality)
 end
 
-@time main()
+
+function time_main()
+        time = @elapsed main()
+        time_name = split(ARGS[3], '/')[end]
+        outfile = open(ARGS[3], "w")
+        write(outfile, "$(time_name)\t$(time)")
+        close(outfile)
+end
+
+time_main()
