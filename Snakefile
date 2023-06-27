@@ -22,6 +22,12 @@ rule all:
     f"{folder}{specimen}/consensus/{specimen}.fa",
     f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
     f"{folder}{specimen}/variant_plots/",
+    f"{folder}{specimen}/script_times/",
+    f"{folder}{specimen}/script_times/analyser.tsv",
+    f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv",
+    f"{folder}{specimen}/script_times/vcf_analysis.tsv",
+    f"{folder}{specimen}/script_times/vcf_plot.tsv",
+    f"{folder}{specimen}/script_times/summary.tsv"
     
 
 rule create_notes:
@@ -59,11 +65,12 @@ rule install_reference:
 
 rule analyse_reads:
     input: f"{folder}{specimen}/reads/{specimen}.fastq"
-    output: f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
+    output: f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
+            f"{folder}{specimen}/script_times/analyser.tsv"
     conda:
         "env.yml"
     shell:
-        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
+        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt {folder}{specimen}/script_times/analyser.tsv"
 
 
 rule plot_quality_reads:
@@ -71,10 +78,11 @@ rule plot_quality_reads:
         f"{folder}{specimen}/reads/{specimen}.fastq"
     output:
         f"{folder}{specimen}/analysis/{specimen}_readqc.png",
-        f"{folder}{specimen}/analysis/{specimen}_readqc.html"
+        f"{folder}{specimen}/analysis/{specimen}_readqc.html",
+        f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv"
     shell:
         """
-        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc
+        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc {folder}{specimen}/script_times/fastq_analyser_plot.tsv
         """
 
 
@@ -164,21 +172,36 @@ rule analyse_vcf:
     input:
         f"{folder}{specimen}/variant_call/{specimen}_cp.vcf"
     output:
-        f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt"
+        f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
+        f"{folder}{specimen}/script_times/vcf_analysis.tsv"
     conda:
         "env.yml"
     shell:
         """
-        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt
+        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt {folder}{specimen}/script_times/vcf_analysis.tsv
         """
 
 rule plot_vcf:
     input:
         f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
     output:
-        directory(f"{folder}{specimen}/variant_plots/")
+        directory(f"{folder}{specimen}/variant_plots/"),
+        f"{folder}{specimen}/script_times/vcf_plot.tsv"
     shell:
         """
         mkdir {folder}{specimen}/variant_plots/
-        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/variant_plots/
+        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/variant_plots/ {folder}{specimen}/script_times/vcf_plot.tsv
+        """
+
+rule script_time:
+    input:
+        f"{folder}{specimen}/script_times/analyser.tsv",
+        f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv",
+        f"{folder}{specimen}/script_times/vcf_analysis.tsv",
+        f"{folder}{specimen}/script_times/vcf_plot.tsv",
+    output:
+        f"{folder}{specimen}/script_times/summary.tsv"
+    shell:
+        """
+        julia scripts/summary.jl {folder}{specimen}/script_times/ {folder}{specimen}/script_times/summary.tsv
         """

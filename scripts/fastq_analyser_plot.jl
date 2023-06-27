@@ -5,9 +5,9 @@ An interactive plot analysis for the fastq-file:
     creating a boxplot for each of the positions 
     of the read where the count of qualities > 1000.
 
-Version 1.0 - Now creates a scatter plot in stead
+Version 1.1 - Added timing of the script
 
-Date: 2023-05-28
+Date: 2023-06-27
 Author: Marc Wijnands
 
 NOTE:
@@ -128,11 +128,18 @@ function readfastq(infile::IOStream)
 end
 
 function main()
-    if length(ARGS) == 2
-        infile::IOStream = open(ARGS[1], "r")
-        out_file::String = ARGS[2]
-        quality_per_position, count_per_position = readfastq(infile)
-        calculate_Qs(quality_per_position, count_per_position, out_file)
-    end
+    infile::IOStream = open(ARGS[1], "r")
+    out_file::String = ARGS[2]
+    quality_per_position, count_per_position = readfastq(infile)
+    calculate_Qs(quality_per_position, count_per_position, out_file)
 end
-main()
+
+function time_main()
+    time = @elapsed main()
+    time_name = split(ARGS[3], '/')[end]
+    outfile = open(ARGS[3], "w")
+    write(outfile, "$(time_name)\t$(time)")
+    close(outfile)
+end
+
+time_main()
