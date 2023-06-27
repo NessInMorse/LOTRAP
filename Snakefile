@@ -1,9 +1,10 @@
 configfile: "env.yml"
 
-folder = config["FOLDER"]
-specimen = config["SPECIMEN"]
-read_id = config["READS_ID"]
-reference_id = config["REFERENCE_ID"]
+
+folder = "/media/ness/PortableSSD/pipelines/"
+specimen = "lutra_lutra"
+read_id = "ERR3313341"
+reference_name = "lutra lutra"
 
 
 rule all:
@@ -38,7 +39,7 @@ rule create_notes:
         mkdir {folder}{specimen}/notes/
         echo "species: {specimen}" > {folder}{specimen}/notes/notes.txt
         echo "read id: {read_id}" >> {folder}{specimen}/notes/notes.txt
-        echo "reference id: {reference_id}" >> {folder}{specimen}/notes/notes.txt
+        echo "reference name: {reference_name}" >> {folder}{specimen}/notes/notes.txt
         """
 
 rule install_fastq:
@@ -59,7 +60,12 @@ rule install_reference:
         "env.yml"
     shell:
         """
-        efetch -db nuccore -id {reference_id} -format fasta > {folder}{specimen}/reference/{specimen}.fasta
+        cd {folder}{specimen}/reference/
+        datasets download genome taxon {reference_name} --reference --filename reference.zip
+        gunzip reference.zip
+        folder=$(ls reference/ncbi_dataset/data | egrep "\.[0-9]" | awk '{{print($NF)}}')
+        file=$(ls reference/ncbi_dataset/data/$folder)
+        mv reference/ncbi_dataset/data/$folder/$file {specimen}.fasta
         """
 
 
