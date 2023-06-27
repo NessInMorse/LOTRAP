@@ -4,7 +4,7 @@ Time summary script
 Summarizes the output of multiple tsv-files in a folder.
 Into a single file containing all the times.
 
-Version 1.0 - Basic functionality with text
+Version 1.1 - Added rounding for better readability
 
 Date: 2023-06-27
 Author: Marc Wijnands
@@ -24,12 +24,15 @@ function main()
         infile = open(prefix * i, "r")
         lines = readlines(infile)
         if length(lines) == 1
-            write(out_file, "$(lines[begin])s\n")
+            filename = split(lines[begin], '.')[begin] * ".jl"
+            file_time = round(parse(Float64, split(lines[begin], '\t')[2]), digits=3)
+            write(out_file, "$(filename)\t$(file_time)s\n")
             total_time += parse(Float64, split(lines[begin], '\t')[end])
         end
         close(infile)
     end
-    write(out_file, "sum\t$(total_time)\n")
+    total_time = round(total_time, digits=3)
+    write(out_file, "sum\t$(total_time)s\n")
     close(out_file)
 end
 
