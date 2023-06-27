@@ -4,7 +4,7 @@ configfile: "env.yml"
 folder = "/media/ness/PortableSSD/pipelines/"
 specimen = "lutra_lutra"
 read_id = "ERR3313341"
-reference_name = "lutra lutra"
+reference_name = "9657"
 
 
 rule all:
@@ -62,10 +62,10 @@ rule install_reference:
         """
         cd {folder}{specimen}/reference/
         datasets download genome taxon {reference_name} --reference --filename reference.zip
-        gunzip reference.zip
-        folder=$(ls reference/ncbi_dataset/data | egrep "\.[0-9]" | awk '{{print($NF)}}')
-        file=$(ls reference/ncbi_dataset/data/$folder)
-        mv reference/ncbi_dataset/data/$folder/$file {specimen}.fasta
+        unzip reference.zip
+        folder=$(ls ncbi_dataset/data | egrep "\.[0-9]" | awk '{{print($NF)}}')
+        file=$(ls ncbi_dataset/data/$folder)
+        mv ncbi_dataset/data/$folder/$file {specimen}.fasta
         """
 
 
