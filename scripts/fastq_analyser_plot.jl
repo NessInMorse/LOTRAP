@@ -12,6 +12,9 @@ Author: Marc Wijnands
 
 NOTE:
 It takes around 5 minutes to plot a file of about 9Gb of data.
+
+PLANNED:
+A GC% Distribution barplot showing the distribution of the GC percentages of the reads
 =#
 try
     using PlotlyJS
@@ -96,7 +99,8 @@ function analyse_quality(quality_string::String,
         if !(i in keys(quality_per_position))
             quality_per_position[i] = zeros(Int, 100)
             push!(count_per_position, 0)
-        end    
+        end
+        quality = (iszero(quality) * 1) + (!iszero(quality)) * quality
         quality_per_position[i][quality] += 1
         count_per_position[i] += 1
     end

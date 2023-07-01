@@ -29,7 +29,6 @@ rule all:
     f"{folder}{specimen}/script_times/vcf_analysis.tsv",
     f"{folder}{specimen}/script_times/vcf_plot.tsv",
     f"{folder}{specimen}/script_times/summary.tsv"
-    
 
 rule create_notes:
     output:
@@ -139,11 +138,9 @@ rule create_vcf:
         f"{folder}{specimen}/variant_call/{specimen}.vcf"
     conda:
         "env.yml"
-    threads:
-        workflow.cores * 0.25
     shell:
         """
-        bcftools mpileup -Ov --threads {threads} -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam | bcftools call -mv -Ov --threads {threads} > {folder}{specimen}/variant_call/{specimen}.vcf
+        bcftools mpileup -Ov -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam | bcftools call -mv -Ov > {folder}{specimen}/variant_call/{specimen}.vcf
         """
 
 rule create_vcf_zipped:
