@@ -23,3 +23,21 @@ Planned functionality:
 * A protein predictor
 * creating of a cladogram of multiple species
 * annotation of contigs & visualisation of the annotation
+
+Performance:
+On the following data of the Streptococcus ruminantium
+* reads:      1.5Gb (DRR481114)
+* reference:  2.1Mb (NZ_AP018400.1)
+
+
+With the following runtimes:
+* real    71m54.665s
+* user    51m29.261s
+* sys     23m7.101s
+
+
+This was done using the time commando before the snakemake commando call on a Swift 3 SF314-58G-57DG Acer laptop with 32Gb of added DDR4 RAM.
+Most of the runtime is from:
+* Installing the sequences
+* Mapping the reads onto the reference
+* Creating the bam and VCF-file

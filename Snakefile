@@ -95,6 +95,18 @@ rule plot_quality_reads:
         """
 
 
+rule plot_quality_reads:
+    input: 
+        f"{folder}{specimen}/reads/{specimen}.fastq"
+    output:
+        f"{folder}{specimen}/analysis/{specimen}_readqc.png",
+        f"{folder}{specimen}/analysis/{specimen}_readqc.html"
+    shell:
+        """
+        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc
+        """
+
+
 rule map_reads:
     input: f"{folder}{specimen}/reference/{specimen}.fasta",
            f"{folder}{specimen}/reads/{specimen}.fastq" 
@@ -142,6 +154,8 @@ rule create_vcf:
         f"{folder}{specimen}/variant_call/{specimen}.vcf"
     conda:
         "env.yml"
+    threads:
+        workflow.cores * 0.25
     shell:
         """
         bcftools mpileup -Ov -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam | bcftools call -mv -Ov > {folder}{specimen}/variant_call/{specimen}.vcf
@@ -197,6 +211,7 @@ rule plot_vcf:
     shell:
         """
         mkdir {folder}{specimen}/variant_plots/
+
         julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/variant_plots/ {folder}{specimen}/script_times/vcf_plot.tsv
         """
 

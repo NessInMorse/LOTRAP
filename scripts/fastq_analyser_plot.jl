@@ -15,6 +15,7 @@ It takes around 5 minutes to plot a file of about 9Gb of data.
 
 PLANNED:
 A GC% Distribution barplot showing the distribution of the GC percentages of the reads
+
 =#
 try
     using PlotlyJS
@@ -24,6 +25,7 @@ catch
     using PlotlyJS
 end
 
+
 function plot_gc_distribution(gc_distribution::Vector{Int}, gc_file::String)
     trace = bar(x = 1:length(gc_distribution), y = gc_distribution, marker_color = "#3f167e")
     layout = Layout(title="GC-percentage distribution in sample")
@@ -31,6 +33,7 @@ function plot_gc_distribution(gc_distribution::Vector{Int}, gc_file::String)
     savefig(p, "$(gc_file).html")
     savefig(p, "$(gc_file).png")
 end
+
 
 function calculate_Qs(quality_per_position, count_per_position, out_file)
     #=
@@ -89,6 +92,7 @@ function calculate_Qs(quality_per_position, count_per_position, out_file)
     # println(box_per_position)
 end
 
+
 function calculateGC(gc_distribution::Vector{Int}, read::String)::Vector{Int}
     #=
     Function that creates the GC-percentage of a read
@@ -104,6 +108,7 @@ function calculateGC(gc_distribution::Vector{Int}, read::String)::Vector{Int}
     gc_distribution[Int(floor(((gc_count / total) * 100) + 0.5)) + 1] += 1
     return gc_distribution
 end
+
 
 
 function analyse_quality(quality_string::String, 
