@@ -14,6 +14,8 @@ rule all:
     f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
     f"{folder}{specimen}/analysis/{specimen}_readqc.png",
     f"{folder}{specimen}/analysis/{specimen}_readqc.html",
+    f"{folder}{specimen}/analysis/{specimen}_gc_distribution.png",
+    f"{folder}{specimen}/analysis/{specimen}_gc_distribution.html",
     f"{folder}{specimen}/reference/{specimen}.fasta",
     f"{folder}{specimen}/mapping/{specimen}.sam",
     f"{folder}{specimen}/mapping/{specimen}.bam",
@@ -84,10 +86,12 @@ rule plot_quality_reads:
     output:
         f"{folder}{specimen}/analysis/{specimen}_readqc.png",
         f"{folder}{specimen}/analysis/{specimen}_readqc.html",
+        f"{folder}{specimen}/analysis/{specimen}_gc_distribution.png",
+        f"{folder}{specimen}/analysis/{specimen}_gc_distribution.html",
         f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv"
     shell:
         """
-        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc {folder}{specimen}/script_times/fastq_analyser_plot.tsv
+        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc {folder}{specimen}/analysis/{specimen}_gc_distribution {folder}{specimen}/script_times/fastq_analyser_plot.tsv
         """
 
 
