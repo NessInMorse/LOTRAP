@@ -12,6 +12,9 @@ Author: Marc Wijnands
 
 NOTE:
 It takes around 5 minutes to plot a file of about 9Gb of data.
+
+PLANNED:
+A GC% Distribution barplot showing the distribution of the GC percentages of the reads
 =#
 try
     using PlotlyJS
@@ -19,6 +22,14 @@ catch
     using Pkg
     Pkg.add("PlotlyJS")
     using PlotlyJS
+end
+
+function plot_gc_distribution(gc_distribution::Vector{Int}, gc_file::String)
+    trace = bar(x = 1:length(gc_distribution), y = gc_distribution, marker_color = "#3f167e")
+    layout = Layout(title="GC-percentage distribution in sample")
+    p = plot([trace], layout)
+    savefig(p, "$(gc_file).html")
+    savefig(p, "$(gc_file).png")
 end
 
 function calculate_Qs(quality_per_position, count_per_position, out_file)
@@ -78,6 +89,22 @@ function calculate_Qs(quality_per_position, count_per_position, out_file)
     # println(box_per_position)
 end
 
+function calculateGC(gc_distribution::Vector{Int}, read::String)::Vector{Int}
+    #=
+    Function that creates the GC-percentage of a read
+        and adds this to the distribution vector
+    in:
+        a distribution of gc-percentages of the reads
+        a read
+    out:
+        an updated distribution with the new GC-count of the read
+    =#
+    gc_count = sum([i == 'G' || i == 'C' for i in read])
+    total = length(read)
+    gc_distribution[Int(floor(((gc_count / total) * 100) + 0.5)) + 1] += 1
+    return gc_distribution
+end
+
 
 function analyse_quality(quality_string::String, 
                          quality_per_position::Dict{Int, Vector{Int}},
@@ -96,7 +123,8 @@ function analyse_quality(quality_string::String,
         if !(i in keys(quality_per_position))
             quality_per_position[i] = zeros(Int, 100)
             push!(count_per_position, 0)
-        end    
+        end
+        quality = (iszero(quality) * 1) + (!iszero(quality)) * quality
         quality_per_position[i][quality] += 1
         count_per_position[i] += 1
     end
@@ -116,28 +144,33 @@ function readfastq(infile::IOStream)
     =#
     quality_per_position::Dict{Int, Vector{Int}} = Dict()
     count_per_position::Vector{Int} = []
+    gc_distribution::Vector{Int} = fill(0, 101)
+    read::String = ""
     for line in eachline(infile)
-        readline(infile)
+        read = readline(infile)
+        gc_distribution = calculateGC(gc_distribution, read)
         readline(infile)
         line = readline(infile)
         quality_per_position, count_per_position = analyse_quality(line, 
                                                                    quality_per_position,
                                                                    count_per_position)
     end
-    return quality_per_position, count_per_position
+    return quality_per_position, count_per_position, gc_distribution
 end
 
 function main()
     infile::IOStream = open(ARGS[1], "r")
     out_file::String = ARGS[2]
-    quality_per_position, count_per_position = readfastq(infile)
+    gc_file::String = ARGS[3]
+    quality_per_position, count_per_position, gc_distribution = readfastq(infile)
     calculate_Qs(quality_per_position, count_per_position, out_file)
+    plot_gc_distribution(gc_distribution, gc_file)
 end
 
 function time_main()
     time = @elapsed main()
-    time_name = split(ARGS[3], '/')[end]
-    outfile = open(ARGS[3], "w")
+    time_name = split(ARGS[4], '/')[end]
+    outfile = open(ARGS[4], "w")
     write(outfile, "$(time_name)\t$(time)")
     close(outfile)
 end
