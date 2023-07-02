@@ -1,9 +1,10 @@
 configfile: "env.yml"
 
-folder = config["FOLDER"]
-specimen = config["SPECIMEN"]
-read_id = config["READS_ID"]
-reference_id = config["REFERENCE_ID"]
+
+folder = "/media/ness/PortableSSD/pipelines/"
+specimen = "lutra_lutra"
+read_id = "ERR3313341"
+reference_name = "9657"
 
 
 rule all:
@@ -13,6 +14,8 @@ rule all:
     f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
     f"{folder}{specimen}/analysis/{specimen}_readqc.png",
     f"{folder}{specimen}/analysis/{specimen}_readqc.html",
+    f"{folder}{specimen}/analysis/{specimen}_gc_distribution.png",
+    f"{folder}{specimen}/analysis/{specimen}_gc_distribution.html",
     f"{folder}{specimen}/reference/{specimen}.fasta",
     f"{folder}{specimen}/mapping/{specimen}.sam",
     f"{folder}{specimen}/mapping/{specimen}.bam",
@@ -22,7 +25,12 @@ rule all:
     f"{folder}{specimen}/consensus/{specimen}.fa",
     f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
     f"{folder}{specimen}/variant_plots/",
-    
+    f"{folder}{specimen}/script_times/",
+    f"{folder}{specimen}/script_times/analyser.tsv",
+    f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv",
+    f"{folder}{specimen}/script_times/vcf_analysis.tsv",
+    f"{folder}{specimen}/script_times/vcf_plot.tsv",
+    f"{folder}{specimen}/script_times/summary.tsv"
 
 rule create_notes:
     output:
@@ -32,7 +40,7 @@ rule create_notes:
         mkdir {folder}{specimen}/notes/
         echo "species: {specimen}" > {folder}{specimen}/notes/notes.txt
         echo "read id: {read_id}" >> {folder}{specimen}/notes/notes.txt
-        echo "reference id: {reference_id}" >> {folder}{specimen}/notes/notes.txt
+        echo "reference name: {reference_name}" >> {folder}{specimen}/notes/notes.txt
         """
 
 rule install_fastq:
@@ -53,17 +61,38 @@ rule install_reference:
         "env.yml"
     shell:
         """
-        efetch -db nuccore -id {reference_id} -format fasta > {folder}{specimen}/reference/{specimen}.fasta
+        cd {folder}{specimen}/reference/
+        datasets download genome taxon {reference_name} --reference --filename reference.zip
+        unzip reference.zip
+        folder=$(ls ncbi_dataset/data | egrep "\.[0-9]" | awk '{{print($NF)}}')
+        file=$(ls ncbi_dataset/data/$folder)
+        mv ncbi_dataset/data/$folder/$file {specimen}.fasta
         """
 
 
 rule analyse_reads:
     input: f"{folder}{specimen}/reads/{specimen}.fastq"
-    output: f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
+    output: f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
+            f"{folder}{specimen}/script_times/analyser.tsv"
     conda:
         "env.yml"
     shell:
-        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt"
+        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt {folder}{specimen}/script_times/analyser.tsv"
+
+
+rule plot_quality_reads:
+    input: 
+        f"{folder}{specimen}/reads/{specimen}.fastq"
+    output:
+        f"{folder}{specimen}/analysis/{specimen}_readqc.png",
+        f"{folder}{specimen}/analysis/{specimen}_readqc.html",
+        f"{folder}{specimen}/analysis/{specimen}_gc_distribution.png",
+        f"{folder}{specimen}/analysis/{specimen}_gc_distribution.html",
+        f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv"
+    shell:
+        """
+        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc {folder}{specimen}/analysis/{specimen}_gc_distribution {folder}{specimen}/script_times/fastq_analyser_plot.tsv
+        """
 
 
 rule plot_quality_reads:
@@ -129,7 +158,7 @@ rule create_vcf:
         workflow.cores * 0.25
     shell:
         """
-        bcftools mpileup -Ov --threads {threads} -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam | bcftools call -mv -Ov --threads {threads} > {folder}{specimen}/variant_call/{specimen}.vcf
+        bcftools mpileup -Ov -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam | bcftools call -mv -Ov > {folder}{specimen}/variant_call/{specimen}.vcf
         """
 
 rule create_vcf_zipped:
@@ -164,21 +193,37 @@ rule analyse_vcf:
     input:
         f"{folder}{specimen}/variant_call/{specimen}_cp.vcf"
     output:
-        f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt"
+        f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
+        f"{folder}{specimen}/script_times/vcf_analysis.tsv"
     conda:
         "env.yml"
     shell:
         """
-        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt
+        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt {folder}{specimen}/script_times/vcf_analysis.tsv
         """
 
 rule plot_vcf:
     input:
         f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
     output:
-        directory(f"{folder}{specimen}/variant_plots/")
+        directory(f"{folder}{specimen}/variant_plots/"),
+        f"{folder}{specimen}/script_times/vcf_plot.tsv"
     shell:
         """
         mkdir {folder}{specimen}/variant_plots/
-        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/variant_plots/
+
+        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/variant_plots/ {folder}{specimen}/script_times/vcf_plot.tsv
+        """
+
+rule script_time:
+    input:
+        f"{folder}{specimen}/script_times/analyser.tsv",
+        f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv",
+        f"{folder}{specimen}/script_times/vcf_analysis.tsv",
+        f"{folder}{specimen}/script_times/vcf_plot.tsv",
+    output:
+        f"{folder}{specimen}/script_times/summary.tsv"
+    shell:
+        """
+        julia scripts/summary.jl {folder}{specimen}/script_times/ {folder}{specimen}/script_times/summary.tsv
         """
