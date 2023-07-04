@@ -2,9 +2,9 @@ configfile: "env.yml"
 
 
 folder = "/media/ness/PortableSSD/pipelines/"
-specimen = "lutra_lutra"
-read_id = "ERR3313341"
-reference_name = "9657"
+specimen = "Salmonella_enterica"
+read_id = "SRR25118790"
+reference_name = "28901"
 
 
 rule all:
@@ -32,26 +32,50 @@ rule all:
     f"{folder}{specimen}/script_times/vcf_plot.tsv",
     f"{folder}{specimen}/script_times/summary.tsv"
 
-rule create_notes:
+rule create_folders:
     output:
-        directory(f"{folder}{specimen}/notes/")
+        directory(f"{folder}{specimen}"),
+        directory(f"{folder}{specimen}/analysis"),
+        directory(f"{folder}{specimen}/consensus"),
+        directory(f"{folder}{specimen}/mapping"),
+        directory(f"{folder}{specimen}/notes"),
+        directory(f"{folder}{specimen}/reads"),
+        directory(f"{folder}{specimen}/reference"),
+        directory(f"{folder}{specimen}/script_times"),
+        directory(f"{folder}{specimen}/variant_call"),
+        directory(f"{folder}{specimen}/variant_plots"),
     shell:
         """
-        mkdir {folder}{specimen}/notes/
-        echo "species: {specimen}" > {folder}{specimen}/notes/notes.txt
-        echo "read id: {read_id}" >> {folder}{specimen}/notes/notes.txt
-        echo "reference name: {reference_name}" >> {folder}{specimen}/notes/notes.txt
+        mkdir -p {output[0]}
+        mkdir -p {output[1]}
+        mkdir -p {output[2]}
+        mkdir -p {output[3]}
+        mkdir -p {output[4]}
+        mkdir -p {output[5]}
+        mkdir -p {output[6]}
+        mkdir -p {output[7]}
+        mkdir -p {output[8]}
+        mkdir -p {output[9]}
+        """
+
+rule create_notes:
+    output: notes = f"{folder}{specimen}/notes/notes.txt"
+    shell:
+        """
+        echo "species: {specimen}" > {output.notes}
+        echo "read id: {read_id}" >> {output.notes}
+        echo "reference name: {reference_name}" >> {output.notes}
         """
 
 rule install_fastq:
     output:
-        f"{folder}{specimen}/reads/{specimen}.fastq"
+        reads = f"{folder}{specimen}/reads/{specimen}.fastq"
     conda:
         "env.yml"
     shell:
         """
         fastq-dump {read_id} -O {folder}{specimen}/reads/ &&
-        mv {folder}{specimen}/reads/{read_id}.fastq {folder}{specimen}/reads/{specimen}.fastq
+        mv {folder}{specimen}/reads/{read_id}.fastq {output.reads}
         """
 
 rule install_reference:
@@ -71,18 +95,20 @@ rule install_reference:
 
 
 rule analyse_reads:
-    input: f"{folder}{specimen}/reads/{specimen}.fastq"
-    output: f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
-            f"{folder}{specimen}/script_times/analyser.tsv"
+    input: reads = f"{folder}{specimen}/reads/{specimen}.fastq"
+    output: fastq_analysis = f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
+            time_file = f"{folder}{specimen}/script_times/analyser.tsv"
     conda:
         "env.yml"
     shell:
-        "julia ./scripts/analyser.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_fastq_analysis.txt {folder}{specimen}/script_times/analyser.tsv"
+        """
+        julia ./scripts/analyser.jl {input.reads} {output.fastq_analysis} {output.time_file}
+        """
 
 
 rule plot_quality_reads:
     input: 
-        f"{folder}{specimen}/reads/{specimen}.fastq"
+        reads = f"{folder}{specimen}/reads/{specimen}.fastq"
     output:
         f"{folder}{specimen}/analysis/{specimen}_readqc.png",
         f"{folder}{specimen}/analysis/{specimen}_readqc.html",
@@ -91,128 +117,112 @@ rule plot_quality_reads:
         f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv"
     shell:
         """
-        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc {folder}{specimen}/analysis/{specimen}_gc_distribution {folder}{specimen}/script_times/fastq_analyser_plot.tsv
+        julia ./scripts/fastq_analyser_plot.jl {input.reads} {folder}{specimen}/analysis/{specimen}_readqc {folder}{specimen}/analysis/{specimen}_gc_distribution {folder}{specimen}/script_times/fastq_analyser_plot.tsv
         """
-
-
-rule plot_quality_reads:
-    input: 
-        f"{folder}{specimen}/reads/{specimen}.fastq"
-    output:
-        f"{folder}{specimen}/analysis/{specimen}_readqc.png",
-        f"{folder}{specimen}/analysis/{specimen}_readqc.html"
-    shell:
-        """
-        julia ./scripts/fastq_analyser_plot.jl {folder}{specimen}/reads/{specimen}.fastq {folder}{specimen}/analysis/{specimen}_readqc
-        """
-
 
 rule map_reads:
-    input: f"{folder}{specimen}/reference/{specimen}.fasta",
-           f"{folder}{specimen}/reads/{specimen}.fastq" 
+    input: reference = f"{folder}{specimen}/reference/{specimen}.fasta",
+           reads = f"{folder}{specimen}/reads/{specimen}.fastq" 
     output:
-        f"{folder}{specimen}/mapping/{specimen}.sam"
+           samfile = f"{folder}{specimen}/mapping/{specimen}.sam"
     conda:
         "env.yml"
     threads: workflow.cores
     shell:
-        "minimap2 -k 15 -w 30 -t {threads} -a {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/reads/{specimen}.fastq > {folder}{specimen}/mapping/{specimen}.sam"
+        "minimap2 -k 15 -w 30 -t {threads} -a {input.reference} {input.reads} > {output.samfile}"
 
 rule sam_bam:
     input:  
-        f"{folder}{specimen}/mapping/{specimen}.sam"
+        samfile = f"{folder}{specimen}/mapping/{specimen}.sam"
     output:
-        f"{folder}{specimen}/mapping/{specimen}.bam"
+        bamfile = f"{folder}{specimen}/mapping/{specimen}.bam"
     conda:
         "env.yml"
     threads: workflow.cores * 0.25
     shell:
         """
-        samtools view -bS {folder}{specimen}/mapping/{specimen}.sam > {folder}{specimen}/mapping/{specimen}.bam
-        samtools sort -@ {threads} {folder}{specimen}/mapping/{specimen}.bam > {folder}{specimen}/mapping/file_sorted_bam
-        mv {folder}{specimen}/mapping/file_sorted_bam {folder}{specimen}/mapping/{specimen}.bam
+        samtools view -bS {input.samfile} > {output.bamfile}
+        samtools sort -@ {threads} {output.bamfile} > {folder}{specimen}/mapping/file_sorted_bam
+        mv {folder}{specimen}/mapping/file_sorted_bam {output.bamfile}
         """
 
 rule create_bai:
     input:
-        f"{folder}{specimen}/mapping/{specimen}.bam"
+        bamfile = f"{folder}{specimen}/mapping/{specimen}.bam"
     output:
-        f"{folder}{specimen}/mapping/{specimen}.bai"
+        baifile = f"{folder}{specimen}/mapping/{specimen}.bai"
     conda:
         "env.yml"
     threads: workflow.cores * 0.25
     shell:
         """
-        samtools index -@ {threads} {folder}{specimen}/mapping/{specimen}.bam > {folder}{specimen}/mapping/{specimen}.bai
+        samtools index -@ {threads} {input.bamfile} > {output.baifile}
         """
 
 rule create_vcf:
     input:
-        f"{folder}{specimen}/reference/{specimen}.fasta",
-        f"{folder}{specimen}/mapping/{specimen}.bam"
+        reference = f"{folder}{specimen}/reference/{specimen}.fasta",
+        bamfile = f"{folder}{specimen}/mapping/{specimen}.bam"
     output:
-        f"{folder}{specimen}/variant_call/{specimen}.vcf"
+        variant_call = f"{folder}{specimen}/variant_call/{specimen}.vcf"
     conda:
         "env.yml"
     threads:
         workflow.cores * 0.25
     shell:
         """
-        bcftools mpileup -Ov -f {folder}{specimen}/reference/{specimen}.fasta {folder}{specimen}/mapping/{specimen}.bam | bcftools call -mv -Ov > {folder}{specimen}/variant_call/{specimen}.vcf
+        bcftools mpileup -Ov -f {input.reference} {input.bamfile} | bcftools call -mv -Ov > {output.variant_call}
         """
 
 rule create_vcf_zipped:
     input:
-        f"{folder}{specimen}/variant_call/{specimen}.vcf"
+        variant_call = f"{folder}{specimen}/variant_call/{specimen}.vcf"
     output:
-        f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
-        f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
+        variant_copy = f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
+        variant_zipped = f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
     conda:
         "env.yml"
     shell:
         """
-        cp {folder}{specimen}/variant_call/{specimen}.vcf {folder}{specimen}/variant_call/{specimen}_cp.vcf
-        bgzip {folder}{specimen}/variant_call/{specimen}.vcf
-        tabix -p vcf {folder}{specimen}/variant_call/{specimen}.vcf.gz
+        cp {input.variant_call} {output.variant_copy}
+        bgzip {input.variant_call}
+        tabix -p vcf {output.variant_zipped}
         """
 
 rule create_consensus:
     input:
-        f"{folder}{specimen}/reference/{specimen}.fasta",
-        f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
+        reference = f"{folder}{specimen}/reference/{specimen}.fasta",
+        variant_zipped = f"{folder}{specimen}/variant_call/{specimen}.vcf.gz"
     output:
-        f"{folder}{specimen}/consensus/{specimen}.fa"
+        consensus = f"{folder}{specimen}/consensus/{specimen}.fa"
     conda:
         "env.yml"
     shell:
         """
-        cat {folder}{specimen}/reference/{specimen}.fasta | bcftools consensus {folder}{specimen}/variant_call/{specimen}.vcf.gz > {folder}{specimen}/consensus/{specimen}.fa
+        cat {input.reference} | bcftools consensus {input.variant_zipped} > {output.consensus}
         """
 
 rule analyse_vcf:
     input:
-        f"{folder}{specimen}/variant_call/{specimen}_cp.vcf"
+        variant_copy = f"{folder}{specimen}/variant_call/{specimen}_cp.vcf"
     output:
-        f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
-        f"{folder}{specimen}/script_times/vcf_analysis.tsv"
+        vcf_text = f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
+        script_time = f"{folder}{specimen}/script_times/vcf_analysis.tsv"
     conda:
         "env.yml"
     shell:
         """
-        julia scripts/vcf_analysis.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/analysis/analysis_vcf_{specimen}.txt {folder}{specimen}/script_times/vcf_analysis.tsv
+        julia scripts/vcf_analysis.jl {input.variant_copy} {output.vcf_text} {output.script_time}
         """
 
 rule plot_vcf:
     input:
-        f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
+        variant_copy = f"{folder}{specimen}/variant_call/{specimen}_cp.vcf",
     output:
-        directory(f"{folder}{specimen}/variant_plots/"),
-        f"{folder}{specimen}/script_times/vcf_plot.tsv"
+        script_time = f"{folder}{specimen}/script_times/vcf_plot.tsv"
     shell:
         """
-        mkdir {folder}{specimen}/variant_plots/
-
-        julia scripts/vcf_plot.jl {folder}{specimen}/variant_call/{specimen}_cp.vcf {folder}{specimen}/variant_plots/ {folder}{specimen}/script_times/vcf_plot.tsv
+        julia scripts/vcf_plot.jl {input.variant_copy} {folder}{specimen}/variant_plots/ {output.script_time}
         """
 
 rule script_time:
@@ -222,8 +232,8 @@ rule script_time:
         f"{folder}{specimen}/script_times/vcf_analysis.tsv",
         f"{folder}{specimen}/script_times/vcf_plot.tsv",
     output:
-        f"{folder}{specimen}/script_times/summary.tsv"
+        summary_time = f"{folder}{specimen}/script_times/summary.tsv"
     shell:
         """
-        julia scripts/summary.jl {folder}{specimen}/script_times/ {folder}{specimen}/script_times/summary.tsv
+        julia scripts/summary.jl {folder}{specimen}/script_times/ {output.summary_time}
         """
