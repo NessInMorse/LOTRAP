@@ -3,14 +3,12 @@ configfile: "env.yml"
 
 folder = "/media/ness/PortableSSD/pipelines/"
 specimen = "Salmonella_enterica"
-read_id = "SRR25118790"
+read_id = "SRR24883431"
 reference_name = "28901"
 
 
 rule all:
   input:
-    f"{folder}{specimen}/",
-    f"{folder}{specimen}/notes/",
     f"{folder}{specimen}/analysis/{specimen}_fastq_analysis.txt",
     f"{folder}{specimen}/analysis/{specimen}_readqc.png",
     f"{folder}{specimen}/analysis/{specimen}_readqc.html",
@@ -24,39 +22,12 @@ rule all:
     f"{folder}{specimen}/variant_call/{specimen}.vcf.gz",
     f"{folder}{specimen}/consensus/{specimen}.fa",
     f"{folder}{specimen}/analysis/analysis_vcf_{specimen}.txt",
-    f"{folder}{specimen}/variant_plots/",
-    f"{folder}{specimen}/script_times/",
     f"{folder}{specimen}/script_times/analyser.tsv",
     f"{folder}{specimen}/script_times/fastq_analyser_plot.tsv",
     f"{folder}{specimen}/script_times/vcf_analysis.tsv",
     f"{folder}{specimen}/script_times/vcf_plot.tsv",
     f"{folder}{specimen}/script_times/summary.tsv"
 
-rule create_folders:
-    output:
-        directory(f"{folder}{specimen}"),
-        directory(f"{folder}{specimen}/analysis"),
-        directory(f"{folder}{specimen}/consensus"),
-        directory(f"{folder}{specimen}/mapping"),
-        directory(f"{folder}{specimen}/notes"),
-        directory(f"{folder}{specimen}/reads"),
-        directory(f"{folder}{specimen}/reference"),
-        directory(f"{folder}{specimen}/script_times"),
-        directory(f"{folder}{specimen}/variant_call"),
-        directory(f"{folder}{specimen}/variant_plots"),
-    shell:
-        """
-        mkdir -p {output[0]}
-        mkdir -p {output[1]}
-        mkdir -p {output[2]}
-        mkdir -p {output[3]}
-        mkdir -p {output[4]}
-        mkdir -p {output[5]}
-        mkdir -p {output[6]}
-        mkdir -p {output[7]}
-        mkdir -p {output[8]}
-        mkdir -p {output[9]}
-        """
 
 rule create_notes:
     output: notes = f"{folder}{specimen}/notes/notes.txt"
@@ -222,7 +193,7 @@ rule plot_vcf:
         script_time = f"{folder}{specimen}/script_times/vcf_plot.tsv"
     shell:
         """
-        julia scripts/vcf_plot.jl {input.variant_copy} {folder}{specimen}/variant_plots/ {output.script_time}
+        julia scripts/vcf_plot.jl {input.variant_copy} {folder}{specimen}/analysis/ {output.script_time}
         """
 
 rule script_time:
